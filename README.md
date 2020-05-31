@@ -22,4 +22,5 @@ g id -- passing polymorphic values is allowed
 ```
 
 TODO
-- [ ] Can forall escape?
+- [X] Can forall escape?, *Edit: Yes it can*
+  - [ ] Can we catch it?
