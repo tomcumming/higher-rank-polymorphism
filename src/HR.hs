@@ -20,3 +20,7 @@ testE = Source.App (Source.Var "g") (Source.Var "id")
 
 testE2 :: Source.Expr
 testE2 = Source.App (Source.Var "f") (Source.Var "id")
+
+testE3 = Source.App (Source.Var "g") (Source.Abs "x" $ Source.Var "x")
+
+testE4 = Source.App (Source.Var "f") (Source.Abs "x" $ Source.Var "x")
