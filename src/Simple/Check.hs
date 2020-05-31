@@ -16,7 +16,7 @@ check ctx e t = case (e, t) of
     (s, ce) <- check ctx e t
     return (s, Typed.TAbs x ce) -- todo Eta reduction
   (Source.Abs x e, Type.Arrow ta tr) -> do
-    (s, ce) <- check (Map.insert x ta ctx) e ta
+    (s, ce) <- check (Map.insert x ta ctx) e tr
     return (s, Typed.Abs x ta ce)
   (e, t) -> do
     (s, t2, ce2) <- infer ctx e

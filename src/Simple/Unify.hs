@@ -40,7 +40,7 @@ subs s t = case t of
 subsVar :: Type.Id -> Type.Type -> Type.Type -> Type.Type
 subsVar x t2 t = case t of
   Type.Var y | x == y -> t2
-  Type.Forall x t -> Type.Forall x (subsVar x t2 t)
+  Type.Forall y t | x /= y -> Type.Forall y (subsVar x t2 t)
   Type.Arrow ta tr -> Type.Arrow (subsVar x t2 ta) (subsVar x t2 tr)
   t -> t
 
