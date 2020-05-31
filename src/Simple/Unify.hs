@@ -12,9 +12,7 @@ unify t1 t2 = case (t1, t2) of
   (Type.Var x, Type.Var y) | x == y -> Map.empty
   (Type.Unsolved x, Type.Unsolved y) | x == y -> Map.empty
   (Type.Arrow t1a t1r, Type.Arrow t2a t2r) ->
-    let s = unify t1a t2a
-        s2 = unify (subs s t1r) (subs s t2r)
-     in combineSubs s s2
+    combineSubs (unify t1a t2a) (unify t1r t2r)
   (Type.Forall x1 t1, Type.Forall x2 t2) -> unifyForall x1 t1 x2 t2
   (Type.Unsolved x, t) -> unifyUnsolved x t
   (t, Type.Unsolved x) -> unifyUnsolved x t
@@ -47,7 +45,12 @@ subsVar x t2 t = case t of
   t -> t
 
 combineSubs :: Subs -> Subs -> Subs
-combineSubs s1 s2 = Map.map (subs s2) s1 `Map.union` s2
+combineSubs s1 s2 = foldl addSub s1 (Map.toList s2)
+  where
+    addSub :: Subs -> (Type.Ext, Type.Type) -> Subs
+    addSub s (x, t) = case Map.lookup x s of
+      Nothing -> Map.insert x (subs s t) s
+      Just t2 -> combineSubs s (unify (subs s t) t2)
 
 freshName :: Set.Set Type.Id -> Type.Id
 freshName xs = head $ filter (\x -> not $ Set.member x xs) $ map return $ ['a' .. 'z']
