@@ -29,15 +29,7 @@ unifyUnsolved x t = case Type.mono t of
 
 unifyForall :: Type.Id -> Type.Type -> Type.Id -> Type.Type -> Subs
 unifyForall x1 t1 x2 t2 =
-  let x3 =
-        freshName
-          ( Set.unions
-              [ Set.singleton x1,
-                Set.singleton x2,
-                Type.free t1,
-                Type.free t2
-              ]
-          )
+  let x3 = freshName (Set.union (Type.free t1) (Type.free t2))
    in unify (subsVar x1 (Type.Var x3) t1) (subsVar x2 (Type.Var x3) t2)
 
 subs :: Subs -> Type.Type -> Type.Type
