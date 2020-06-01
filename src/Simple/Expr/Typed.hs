@@ -1,5 +1,6 @@
 module Simple.Expr.Typed where
 
+import qualified Simple.Ctx as Ctx
 import Simple.Expr (Id)
 import qualified Simple.Type as Type
 import qualified Simple.Unify as Unify
@@ -13,15 +14,13 @@ data Expr
   | TApp Expr Type.Type
   deriving (Show, Eq)
 
-{-
-subs :: Unify.Subs -> Expr -> Expr
-subs s e = case e of
-  Abs x t e -> Abs x (Unify.subs s t) (subs s e)
-  App e1 e2 -> App (subs s e1) (subs s e2)
-  TAbs x e -> TAbs x (subs s e)
-  TApp e t -> TApp (subs s e) (Unify.subs s t)
+subs :: Ctx.Ctx -> Expr -> Expr
+subs ctx e = case e of
+  Abs x t e -> Abs x (Ctx.subs ctx t) (subs ctx e)
+  App e1 e2 -> App (subs ctx e1) (subs ctx e2)
+  TAbs x e -> TAbs x (subs ctx e)
+  TApp e t -> TApp (subs ctx e) (Ctx.subs ctx t)
   e -> e
--}
 
 -- deep eta reduction
 simplify :: Expr -> Expr

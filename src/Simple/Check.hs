@@ -18,7 +18,7 @@ check ctx e t = case (e, t) of
     let binding = Ctx.Binding x ta
     (ctx2, ce) <- check (binding : ctx) e tr
     case Ctx.splitPart ctx2 binding of
-      Just (_, ts) -> return (ts, ce)
+      Just (_, ts) -> return (ts, Typed.Abs x ta ce)
       Nothing -> error $ "Expected binding in ctx: " ++ show binding
   (e, t) -> do
     (ctx2, t2, ce2) <- infer ctx e

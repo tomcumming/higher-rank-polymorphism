@@ -34,5 +34,9 @@ testEscape = Source.App (Source.Var "escape") (Source.Abs "x" $ Source.Var "x")
 
 checkExpr :: Source.Expr -> IO ()
 checkExpr e = do
-  let (s, t, ce) = runTI $ Check.infer ctx e
-  print (s, t, ce)
+  let (ctx2, t, ce) = runTI $ Check.infer ctx e
+  print ctx2
+  print t
+  print ce
+  print $ Ctx.subs ctx2 t
+  print $ Typed.simplify $ Typed.subs ctx2 ce
