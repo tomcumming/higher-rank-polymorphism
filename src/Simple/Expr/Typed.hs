@@ -13,6 +13,7 @@ data Expr
   | TApp Expr Type.Type
   deriving (Show, Eq)
 
+{-
 subs :: Unify.Subs -> Expr -> Expr
 subs s e = case e of
   Abs x t e -> Abs x (Unify.subs s t) (subs s e)
@@ -20,6 +21,7 @@ subs s e = case e of
   TAbs x e -> TAbs x (subs s e)
   TApp e t -> TApp (subs s e) (Unify.subs s t)
   e -> e
+-}
 
 -- deep eta reduction
 simplify :: Expr -> Expr

@@ -2,55 +2,52 @@ module Simple.Unify where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Simple.Ctx as Ctx
+import Simple.TI (TI, fresh)
 import qualified Simple.Type as Type
 
 type Subs = Map.Map Type.Ext Type.Type
 
-unify :: Type.Type -> Type.Type -> Subs
-unify t1 t2 = case (t1, t2) of
-  (Type.Unit, Type.Unit) -> Map.empty
-  (Type.Var x, Type.Var y) | x == y -> Map.empty
-  (Type.Unsolved x, Type.Unsolved y) | x == y -> Map.empty
-  (Type.Arrow t1a t1r, Type.Arrow t2a t2r) ->
-    combineSubs (unify t1a t2a) (unify t1r t2r)
-  (Type.Forall x1 t1, Type.Forall x2 t2) -> unifyForall x1 t1 x2 t2
-  (Type.Unsolved x, t) -> unifyUnsolved x t
-  (t, Type.Unsolved x) -> unifyUnsolved x t
-  _ -> error $ unwords $ ["Can't unify", show t1, show t2]
+unify :: Ctx.Ctx -> Type.Type -> Type.Type -> TI Ctx.Ctx
+unify ctx t1 t2 = case (t1, t2) of
+  (Type.Unit, Type.Unit) -> return ctx
+  (Type.Var x, Type.Var y) | x == y -> return ctx
+  (Type.Unsolved x, Type.Unsolved y) | x == y -> return ctx
+  (Type.Arrow t1a t1r, Type.Arrow t2a t2r) -> do
+    ctx2 <- unify ctx t1a t2a
+    unify ctx2 (Ctx.subs ctx2 t1r) (Ctx.subs ctx2 t2r)
+  (Type.Forall x1 t1, Type.Forall x2 t2) -> do
+    f <- fresh
+    ctx3 <- unify (Ctx.Unsolved f : ctx) (Type.subsVar x1 (Type.Unsolved f) t1) t2
+    case Ctx.splitMarker ctx3 f of
+      Nothing -> error $ "Can't find marker: " ++ show f
+      Just (_, ctx4) -> return ctx
+  (Type.Unsolved x, t2) -> inst ctx x t2
+  (t1, Type.Unsolved x) -> inst ctx x t1
+  (t1, t2) -> error $ unwords ["Can't unify", show t1, show t2]
 
-unifyUnsolved :: Type.Ext -> Type.Type -> Subs
-unifyUnsolved x t = case Type.mono t of
-  False -> error $ "Can't substitute unsolved for a poly type"
-  True -> case Set.member x (Type.unsolved t) of
-    True -> error $ "Occurs check"
-    False -> Map.singleton x t
-
-unifyForall :: Type.Id -> Type.Type -> Type.Id -> Type.Type -> Subs
-unifyForall x1 t1 x2 t2 =
-  let x3 = freshName (Set.union (Type.free t1) (Type.free t2))
-   in unify (subsVar x1 (Type.Var x3) t1) (subsVar x2 (Type.Var x3) t2)
-
-subs :: Subs -> Type.Type -> Type.Type
-subs s t = case t of
-  Type.Unsolved x | Just t2 <- Map.lookup x s -> t2
-  Type.Forall x t -> Type.Forall x (subs s t)
-  Type.Arrow t1 t2 -> Type.Arrow (subs s t1) (subs s t2)
-  t -> t
-
-subsVar :: Type.Id -> Type.Type -> Type.Type -> Type.Type
-subsVar x t2 t = case t of
-  Type.Var y | x == y -> t2
-  Type.Forall y t | x /= y -> Type.Forall y (subsVar x t2 t)
-  Type.Arrow ta tr -> Type.Arrow (subsVar x t2 ta) (subsVar x t2 tr)
-  t -> t
-
-combineSubs :: Subs -> Subs -> Subs
-combineSubs s1 s2 = foldl addSub s1 (Map.toList s2)
-  where
-    addSub :: Subs -> (Type.Ext, Type.Type) -> Subs
-    addSub s (x, t) = case Map.lookup x s of
-      Nothing -> Map.insert x (subs s t) s
-      Just t2 -> combineSubs s (unify (subs s t) t2)
-
-freshName :: Set.Set Type.Id -> Type.Id
-freshName xs = head $ filter (\x -> not $ Set.member x xs) $ map return $ ['a' .. 'z']
+inst :: Ctx.Ctx -> Type.Ext -> Type.Type -> TI Ctx.Ctx
+inst ctx x t = case Ctx.splitUnsolved ctx x of
+  Nothing -> error $ "Can't find unsolved in ctx: " ++ show x
+  Just (hs, ts) -> case t of
+    Type.Forall _ _ -> error $ "Only monotype inst allowed!"
+    Type.Arrow ta tr -> do
+      fa <- fresh
+      fr <- fresh
+      let t2 = Type.Arrow (Type.Unsolved fa) (Type.Unsolved fr)
+      return $ hs ++ Ctx.Solved x t2 : Ctx.Unsolved fa : Ctx.Unsolved fr : ts
+    Type.Unsolved y -> case Ctx.splitUnsolved hs y of
+      Just (hs, ms) ->
+        return $
+          hs
+            ++ Ctx.Solved y (Type.Unsolved x) : ms
+            ++ Ctx.Unsolved x : ts
+      Nothing -> case Ctx.splitUnsolved ts y of
+        Just (ms, ts) ->
+          return $
+            hs
+              ++ Ctx.Solved x (Type.Unsolved y) : ms
+              ++ Ctx.Unsolved y : ts
+        Nothing -> error $ "Can't find unsolved in ctx: " ++ show y
+    -- t must be a simple type like var or unit
+    t -> return $ hs ++ (Ctx.Solved x t) : ts

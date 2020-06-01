@@ -33,3 +33,17 @@ free t = case t of
   Forall x t -> Set.delete x (free t)
   Arrow t1 t2 -> free t1 `Set.union` free t2
   _ -> Set.empty
+
+subsVar :: Id -> Type -> Type -> Type
+subsVar x t2 t = case t of
+  Var y | x == y -> t2
+  Forall y t | x /= y -> Forall y (subsVar x t2 t)
+  Arrow ta tr -> Arrow (subsVar x t2 ta) (subsVar x t2 tr)
+  t -> t
+
+subsExt :: Ext -> Type -> Type -> Type
+subsExt x t2 t = case t of
+  Unsolved y | x == y -> t2
+  Forall y t -> Forall y (subsExt x t2 t)
+  Arrow ta tr -> Arrow (subsExt x t2 ta) (subsExt x t2 tr)
+  t -> t
