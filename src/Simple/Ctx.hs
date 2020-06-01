@@ -19,6 +19,12 @@ subs ctx t = case ctx of
   (Solved x t2 : ctx) -> subs ctx (Type.subsExt x t2 t)
   (_ : ctx) -> subs ctx t
 
+lookupBinding :: Ctx -> Expr.Id -> Maybe Type.Type
+lookupBinding ctx x = case ctx of
+  [] -> Nothing
+  (Binding y t : _) | x == y -> Just t
+  (_ : ctx) -> lookupBinding ctx x
+
 splitPart :: Ctx -> Part -> Maybe (Ctx, Ctx)
 splitPart ctx p = case ctx of
   [] -> Nothing

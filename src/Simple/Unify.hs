@@ -28,7 +28,7 @@ unify ctx t1 t2 = case (t1, t2) of
 
 inst :: Ctx.Ctx -> Type.Ext -> Type.Type -> TI Ctx.Ctx
 inst ctx x t = case Ctx.splitUnsolved ctx x of
-  Nothing -> error $ "Can't find unsolved in ctx: " ++ show x
+  Nothing -> error $ show (ctx, x, t) -- "Can't find unsolved in ctx: " ++ show x
   Just (hs, ts) -> case t of
     Type.Forall _ _ -> error $ "Only monotype inst allowed!"
     Type.Arrow ta tr -> do
