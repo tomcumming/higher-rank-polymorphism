@@ -49,5 +49,26 @@ inst ctx x t = case Ctx.splitUnsolved ctx x of
               ++ Ctx.Solved x (Type.Unsolved y) : ms
               ++ Ctx.Unsolved y : ts
         Nothing -> error $ "Can't find unsolved in ctx: " ++ show y
-    -- t must be a simple type like var or unit
-    t -> return $ hs ++ (Ctx.Solved x t) : ts
+    t -> case monoValid ts t of
+      True -> return $ hs ++ (Ctx.Solved x t) : ts
+      False -> error $ show (t, ts)
+
+monoValid :: Ctx.Ctx -> Type.Type -> Bool
+monoValid ctx t = case t of
+  Type.Var x -> varInCtx ctx x
+  Type.Unsolved x -> unsolvedInCtx ctx x
+  Type.Forall x t -> False
+  Type.Arrow t1 t2 -> monoValid ctx t1 && monoValid ctx t2
+  Type.Unit -> True
+  where
+    varInCtx :: Ctx.Ctx -> Type.Id -> Bool
+    varInCtx ctx x = case ctx of
+      [] -> False
+      (Ctx.Var y : _) | x == y -> True
+      (_ : ctx) -> varInCtx ctx x
+    unsolvedInCtx :: Ctx.Ctx -> Type.Ext -> Bool
+    unsolvedInCtx ctx x = case ctx of
+      [] -> False
+      (Ctx.Unsolved y : _) | x == y -> True
+      (Ctx.Solved y _ : _) | x == y -> True
+      (_ : ctx) -> unsolvedInCtx ctx x

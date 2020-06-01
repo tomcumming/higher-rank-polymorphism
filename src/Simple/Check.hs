@@ -12,13 +12,15 @@ import qualified Simple.Unify as Unify
 check :: Ctx.Ctx -> Source.Expr -> Type.Type -> TI (Ctx.Ctx, Typed.Expr)
 check ctx e t = case (e, t) of
   (e, Type.Forall x t) -> do
-    (ctx2, ce) <- check ctx e t
-    return (ctx2, Typed.TAbs x ce)
+    (ctx2, ce) <- check (Ctx.Var x : ctx) e t
+    case Ctx.splitPart ctx2 (Ctx.Var x) of
+      Nothing -> error $ "Expected var in ctx: " ++ x
+      Just (hs, ts) -> return (ts, Typed.subs ctx2 (Typed.TAbs x ce))
   (Source.Abs x e, Type.Arrow ta tr) -> do
     let binding = Ctx.Binding x ta
     (ctx2, ce) <- check (binding : ctx) e tr
     case Ctx.splitPart ctx2 binding of
-      Just (_, ts) -> return (ts, Typed.Abs x ta ce)
+      Just (_, ts) -> return (ts, Typed.subs ctx2 (Typed.Abs x ta ce))
       Nothing -> error $ "Expected binding in ctx: " ++ show binding
   (e, t) -> do
     (ctx2, t2, ce2) <- infer ctx e
@@ -42,7 +44,8 @@ infer ctx e = case e of
     let binding = Ctx.Binding x (Type.Unsolved y)
     (ctx2, tr, ce) <- infer (binding : ctx) e
     case Ctx.splitPart ctx2 binding of
-      Just (_, ts) -> return (ts, Type.Arrow (Type.Unsolved y) tr, ce)
+      Just (_, ts) ->
+        return (ts, Type.Arrow (Type.Unsolved y) tr, Typed.subs ctx2 ce)
       Nothing -> error $ "Expected binding in ctx: " ++ show binding
   Source.App e1 e2 -> do
     (ctx2, t2, ce2) <- infer ctx e1
