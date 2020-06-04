@@ -27,13 +27,6 @@ unsolved t = case t of
   Arrow t1 t2 -> unsolved t1 `Set.union` unsolved t2
   _ -> Set.empty
 
-free :: Type -> Set.Set Id
-free t = case t of
-  Var x -> Set.singleton x
-  Forall x t -> Set.delete x (free t)
-  Arrow t1 t2 -> free t1 `Set.union` free t2
-  _ -> Set.empty
-
 subsVar :: Id -> Type -> Type -> Type
 subsVar x t2 t = case t of
   Var y | x == y -> t2
