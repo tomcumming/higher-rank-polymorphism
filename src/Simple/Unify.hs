@@ -18,7 +18,7 @@ unify ctx t1 t2 = case (t1, t2) of
     unify ctx2 (Ctx.subs ctx2 t1r) (Ctx.subs ctx2 t2r)
   (Type.Forall x1 t1, Type.Forall x2 t2) -> do
     f <- fresh
-    ctx3 <- unify (Ctx.Unsolved f : ctx) (Type.subsVar x1 (Type.Unsolved f) t1) t2
+    ctx3 <- unify (Ctx.UnsolvedExt f : ctx) (Type.subsVar x1 (Type.Unsolved f) t1) t2
     case Ctx.splitMarker ctx3 f of
       Nothing -> error $ "Can't find marker: " ++ show f
       Just (_, ctx4) -> return ctx
@@ -35,22 +35,22 @@ inst ctx x t = case Ctx.splitUnsolved ctx x of
       fa <- fresh
       fr <- fresh
       let t2 = Type.Arrow (Type.Unsolved fa) (Type.Unsolved fr)
-      return $ hs ++ Ctx.Solved x t2 : Ctx.Unsolved fa : Ctx.Unsolved fr : ts
+      return $ hs ++ Ctx.SolvedExt x t2 : Ctx.UnsolvedExt fa : Ctx.UnsolvedExt fr : ts
     Type.Unsolved y -> case Ctx.splitUnsolved hs y of
       Just (hs, ms) ->
         return $
           hs
-            ++ Ctx.Solved y (Type.Unsolved x) : ms
-            ++ Ctx.Unsolved x : ts
+            ++ Ctx.SolvedExt y (Type.Unsolved x) : ms
+            ++ Ctx.UnsolvedExt x : ts
       Nothing -> case Ctx.splitUnsolved ts y of
         Just (ms, ts) ->
           return $
             hs
-              ++ Ctx.Solved x (Type.Unsolved y) : ms
-              ++ Ctx.Unsolved y : ts
+              ++ Ctx.SolvedExt x (Type.Unsolved y) : ms
+              ++ Ctx.UnsolvedExt y : ts
         Nothing -> error $ "Can't find unsolved in ctx: " ++ show y
     t -> case monoValid ts t of
-      True -> return $ hs ++ (Ctx.Solved x t) : ts
+      True -> return $ hs ++ (Ctx.SolvedExt x t) : ts
       False -> error $ show (t, ts)
 
 monoValid :: Ctx.Ctx -> Type.Type -> Bool
@@ -69,6 +69,6 @@ monoValid ctx t = case t of
     unsolvedInCtx :: Ctx.Ctx -> Type.Ext -> Bool
     unsolvedInCtx ctx x = case ctx of
       [] -> False
-      (Ctx.Unsolved y : _) | x == y -> True
-      (Ctx.Solved y _ : _) | x == y -> True
+      (Ctx.UnsolvedExt y : _) | x == y -> True
+      (Ctx.SolvedExt y _ : _) | x == y -> True
       (_ : ctx) -> unsolvedInCtx ctx x

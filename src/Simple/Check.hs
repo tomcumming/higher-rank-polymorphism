@@ -60,7 +60,7 @@ applyUnsolved :: Ctx.Ctx -> Type.Type -> Typed.Expr -> TI (Ctx.Ctx, Type.Type, T
 applyUnsolved ctx t ce = case t of
   Type.Forall x t -> do
     y <- fresh
-    let ctx2 = Ctx.Unsolved y : ctx
+    let ctx2 = Ctx.UnsolvedExt y : ctx
     (ctx3, t3, ce3) <- applyUnsolved ctx2 (Type.subsVar x (Type.Unsolved y) t) ce
     return (ctx3, t3, Typed.TApp ce3 (Type.Unsolved y))
   t -> return (ctx, t, ce)

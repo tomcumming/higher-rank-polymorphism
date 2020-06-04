@@ -4,8 +4,8 @@ import qualified Simple.Expr as Expr
 import qualified Simple.Type as Type
 
 data Part
-  = Unsolved Type.Ext
-  | Solved Type.Ext Type.Type
+  = UnsolvedExt Type.Ext
+  | SolvedExt Type.Ext Type.Type
   | Var Type.Id
   | Binding Expr.Id Type.Type
   | Marker Type.Ext
@@ -16,7 +16,7 @@ type Ctx = [Part]
 subs :: Ctx -> Type.Type -> Type.Type
 subs ctx t = case ctx of
   [] -> t
-  (Solved x t2 : ctx) -> subs ctx (Type.subsExt x t2 t)
+  (SolvedExt x t2 : ctx) -> subs ctx (Type.subsExt x t2 t)
   (_ : ctx) -> subs ctx t
 
 lookupBinding :: Ctx -> Expr.Id -> Maybe Type.Type
@@ -37,4 +37,4 @@ splitMarker :: Ctx -> Type.Ext -> Maybe (Ctx, Ctx)
 splitMarker ctx x = splitPart ctx (Marker x)
 
 splitUnsolved :: Ctx -> Type.Ext -> Maybe (Ctx, Ctx)
-splitUnsolved ctx x = splitPart ctx (Unsolved x)
+splitUnsolved ctx x = splitPart ctx (UnsolvedExt x)
