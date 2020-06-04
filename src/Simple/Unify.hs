@@ -27,31 +27,33 @@ unify ctx t1 t2 = case (t1, t2) of
   (t1, t2) -> error $ unwords ["Can't unify", show t1, show t2]
 
 inst :: Ctx.Ctx -> Type.Ext -> Type.Type -> TI Ctx.Ctx
-inst ctx x t = case Ctx.splitUnsolved ctx x of
-  Nothing -> error $ show (ctx, x, t) -- "Can't find unsolved in ctx: " ++ show x
-  Just (hs, ts) -> case t of
-    Type.Forall _ _ -> error $ "Only monotype inst allowed!"
-    Type.Arrow ta tr -> do
-      fa <- fresh
-      fr <- fresh
-      let t2 = Type.Arrow (Type.Unsolved fa) (Type.Unsolved fr)
-      return $ hs ++ Ctx.SolvedExt x t2 : Ctx.UnsolvedExt fa : Ctx.UnsolvedExt fr : ts
-    Type.Unsolved y -> case Ctx.splitUnsolved hs y of
-      Just (hs, ms) ->
-        return $
-          hs
-            ++ Ctx.SolvedExt y (Type.Unsolved x) : ms
-            ++ Ctx.UnsolvedExt x : ts
-      Nothing -> case Ctx.splitUnsolved ts y of
-        Just (ms, ts) ->
+inst ctx x t = case Set.member x (Type.unsolved t) of
+  True -> error $ "Occurs check!"
+  False -> case Ctx.splitUnsolved ctx x of
+    Nothing -> error $ "Can't find unsolved in ctx: " ++ show x
+    Just (hs, ts) -> case t of
+      Type.Forall _ _ -> error $ "Only monotype inst allowed!"
+      Type.Arrow ta tr -> do
+        fa <- fresh
+        fr <- fresh
+        let t2 = Type.Arrow (Type.Unsolved fa) (Type.Unsolved fr)
+        return $ hs ++ Ctx.SolvedExt x t2 : Ctx.UnsolvedExt fa : Ctx.UnsolvedExt fr : ts
+      Type.Unsolved y -> case Ctx.splitUnsolved hs y of
+        Just (hs, ms) ->
           return $
             hs
-              ++ Ctx.SolvedExt x (Type.Unsolved y) : ms
-              ++ Ctx.UnsolvedExt y : ts
-        Nothing -> error $ "Can't find unsolved in ctx: " ++ show y
-    t -> case monoValid ts t of
-      True -> return $ hs ++ (Ctx.SolvedExt x t) : ts
-      False -> error $ show (t, ts)
+              ++ Ctx.SolvedExt y (Type.Unsolved x) : ms
+              ++ Ctx.UnsolvedExt x : ts
+        Nothing -> case Ctx.splitUnsolved ts y of
+          Just (ms, ts) ->
+            return $
+              hs
+                ++ Ctx.SolvedExt x (Type.Unsolved y) : ms
+                ++ Ctx.UnsolvedExt y : ts
+          Nothing -> error $ "Can't find unsolved in ctx: " ++ show y
+      t -> case monoValid ts t of
+        True -> return $ hs ++ (Ctx.SolvedExt x t) : ts
+        False -> error $ "Not valid in remaining ctx:" ++ show t
 
 monoValid :: Ctx.Ctx -> Type.Type -> Bool
 monoValid ctx t = case t of
