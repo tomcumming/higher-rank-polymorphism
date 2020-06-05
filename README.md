@@ -1,25 +1,24 @@
 # Type inference for higher rank polymorphism
 
-Doesn't need to be as flexible as other systems:
+...that doesn't support subtyping (on purpose).
 
 ```haskell
-f : (() -> () -> ()) -> ()
+withMono : (() -> () -> ()) -> ()
+higherRank : () -> (forall a. a -> a)
 
-g : () -> (forall a. a -> a)
-
-f g -- Is a type error
+withMono higherRank -- Is a type error
 ```
 
-However this needs to work
+However this works
 ```haskell
 id : forall a. a -> a
 
-f : (() -> ()) -> ()
-g : (forall b. b -> b) -> ()
+withMono : (() -> ()) -> ()
+withPoly : (forall b. b -> b) -> ()
 
-f id -- type application is inferred
-g id -- passing polymorphic values is allowed
+withMono id -- type application is inferred
+withPoly id -- passing polymorphic values is allowed
 ```
 
-TODO
-- [X] Forall escape is caught (Update: caught in simple tested case)
+Forall variables are not allowed to escape their scope by the use of an
+[ordered context](./src/Simple/Ctx.hs).
